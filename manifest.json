@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "📄 简历填写助手",
+  "version": "1.0.0",
+  "description": "读取Markdown格式的简历内容，快速复制到剪切板",
+  "permissions": [
+    "storage",
+    "clipboardWrite"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
+

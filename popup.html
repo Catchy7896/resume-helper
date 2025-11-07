@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>简历填写助手</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>📄 简历填写助手</h1>
+    
+    <!-- 文件上传区域 -->
+    <div class="upload-section" id="uploadSection">
+      <input type="file" id="fileInput" accept=".md,.markdown" style="display: none;">
+      <button id="uploadBtn" class="upload-btn">上传Markdown文件</button>
+      <div id="fileStatus" class="file-status"></div>
+    </div>
+
+    <!-- 重新上传按钮 -->
+    <div class="reupload-section" id="reuploadSection" style="display: none;">
+      <button id="reuploadBtn" class="reupload-btn">重新上传文件</button>
+    </div>
+
+    <!-- 标签列表区域 -->
+    <div class="tags-section" id="tagsSection" style="display: none;">
+      <h2>点击标签复制内容</h2>
+      <div id="tagsContainer" class="tags-container"></div>
+    </div>
+
+    <!-- 提示信息 -->
+    <div id="message" class="message"></div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
+
