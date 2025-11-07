@@ -7,31 +7,69 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
+  <div class="resize-handle"></div>
   <div class="container">
-    <h1>📄 简历填写助手</h1>
-    
-    <!-- 文件上传区域 -->
-    <div class="upload-section" id="uploadSection">
-      <input type="file" id="fileInput" accept=".md,.markdown" style="display: none;">
-      <button id="uploadBtn" class="upload-btn">上传Markdown文件</button>
-      <div id="fileStatus" class="file-status"></div>
+    <div class="header">
+      <h1>📄 简历填写助手</h1>
     </div>
 
-    <!-- 重新上传按钮 -->
-    <div class="reupload-section" id="reuploadSection" style="display: none;">
-      <button id="reuploadBtn" class="reupload-btn">重新上传文件</button>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="resume">简历内容</button>
+      <button class="tab-btn" data-tab="applications">投递记录</button>
     </div>
 
-    <!-- 标签列表区域 -->
-    <div class="tags-section" id="tagsSection" style="display: none;">
-      <h2>点击标签复制内容</h2>
-      <div id="tagsContainer" class="tags-container"></div>
+    <div class="tab-content active" id="resumeTab">
+      <div class="upload-section" id="uploadSection">
+        <input type="file" id="fileInput" accept=".md,.markdown" style="display:none;">
+        <button id="uploadBtn" class="upload-btn">上传Markdown文件</button>
+        <div id="fileStatus" class="file-status"></div>
+      </div>
+
+      <div class="reupload-section" id="reuploadSection" style="display:none;">
+        <button id="reuploadBtn" class="reupload-btn">重新上传文件</button>
+      </div>
+
+      <div class="tags-section" id="tagsSection" style="display:none;">
+        <h2>点击标签复制内容</h2>
+        <div id="tagsContainer" class="tags-container"></div>
+      </div>
     </div>
 
-    <!-- 提示信息 -->
+    <div class="tab-content" id="applicationsTab">
+      <div class="applications-header">
+        <h2>投递记录</h2>
+        <button id="addApplicationBtn" class="add-btn">+ 添加记录</button>
+      </div>
+
+      <div class="applications-tabs">
+        <button class="app-tab-btn active" data-status="pending">待投递</button>
+        <button class="app-tab-btn" data-status="submitted">已投递</button>
+      </div>
+
+      <div id="applicationsContainer" class="applications-container"></div>
+    </div>
+
     <div id="message" class="message"></div>
   </div>
-  
+
+  <div id="applicationDialog" class="dialog" style="display:none;">
+    <div class="dialog-content">
+      <h3 id="applicationDialogTitle">添加投递记录</h3>
+      <input type="text" id="appTitleInput" placeholder="公司/职位名称" class="dialog-input">
+      <input type="date" id="appDateInput" class="dialog-input">
+      <input type="url" id="appLinkInput" placeholder="投递链接（可选）" class="dialog-input">
+      <textarea id="appNotesInput" placeholder="备注（可选）" class="dialog-textarea"></textarea>
+      <select id="appStatusSelect" class="dialog-input">
+        <option value="pending">待投递</option>
+        <option value="submitted">已投递</option>
+      </select>
+      <div class="dialog-actions">
+        <button id="appDialogCancel" class="dialog-btn cancel">取消</button>
+        <button id="appDialogConfirm" class="dialog-btn confirm">确定</button>
+      </div>
+    </div>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>
