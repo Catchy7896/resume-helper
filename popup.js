@@ -12,6 +12,7 @@ const pinWindowBtn = document.getElementById('pinWindowBtn');
 const floatWindowBtn = document.getElementById('floatWindowBtn');
 const addSectionBtn = document.getElementById('addSectionBtn');
 const exportMarkdownBtn = document.getElementById('exportMarkdownBtn');
+const quickFillBtn = document.getElementById('quickFillBtn');
 
 // 简历编辑对话框元素
 const resumeEditDialog = document.getElementById('resumeEditDialog');
@@ -78,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initPinWindow();
   initFloatWindow();
   initResumeEdit();
+  initQuickFill();
   loadStoredData();
 
   uploadBtn.addEventListener('click', () => fileInput.click());
@@ -1249,5 +1251,150 @@ function exportToMarkdown() {
   URL.revokeObjectURL(url);
   
   showMessage('Markdown文件已导出');
+}
+
+// 初始化一键闪填功能
+function initQuickFill() {
+  if (quickFillBtn) {
+    quickFillBtn.addEventListener('click', () => {
+      performQuickFill();
+    });
+  }
+}
+
+// 将简历数据转换为结构化格式
+function convertResumeToStructuredData() {
+  const structuredData = {};
+  
+  if (!resumeSections || resumeSections.length === 0) {
+    return structuredData;
+  }
+  
+  // 遍历所有模块和条目，提取关键信息
+  resumeSections.forEach((section) => {
+    section.groups.forEach((group) => {
+      if (group.entries && group.entries.length > 0) {
+        group.entries.forEach((entry) => {
+          const label = (entry.label || '').toLowerCase().trim();
+          const value = entry.value || '';
+          
+          if (!value) return;
+          
+          // 根据标签识别字段类型
+          if (label.includes('姓名') || label.includes('name')) {
+            structuredData.name = value;
+            structuredData['姓名'] = value;
+          } else if (label.includes('电话') || label.includes('手机') || label.includes('phone') || label.includes('tel') || label.includes('mobile')) {
+            structuredData.phone = value;
+            structuredData['电话'] = value;
+          } else if (label.includes('邮箱') || label.includes('邮件') || label.includes('email') || label.includes('mail')) {
+            structuredData.email = value;
+            structuredData['邮箱'] = value;
+          } else if (label.includes('地址') || label.includes('address')) {
+            structuredData.address = value;
+            structuredData['地址'] = value;
+          } else if (label.includes('公司') || label.includes('company') || label.includes('单位')) {
+            structuredData.company = value;
+            structuredData['公司'] = value;
+          } else if (label.includes('职位') || label.includes('position') || label.includes('job') || label.includes('岗位')) {
+            structuredData.position = value;
+            structuredData['职位'] = value;
+          } else if (label.includes('工作经历') || label.includes('experience') || label.includes('工作经验')) {
+            if (!structuredData.experience) {
+              structuredData.experience = [];
+            }
+            structuredData.experience.push(value);
+          } else if (label.includes('教育') || label.includes('education') || label.includes('学历') || label.includes('学校')) {
+            if (!structuredData.education) {
+              structuredData.education = [];
+            }
+            structuredData.education.push(value);
+          } else if (label.includes('技能') || label.includes('skill')) {
+            if (!structuredData.skill) {
+              structuredData.skill = [];
+            }
+            structuredData.skill.push(value);
+          } else if (label.includes('介绍') || label.includes('简介') || label.includes('introduction') || label.includes('描述')) {
+            structuredData.introduction = value;
+            structuredData['介绍'] = value;
+          }
+        });
+      }
+    });
+  });
+  
+  // 处理数组字段，合并为字符串
+  if (Array.isArray(structuredData.experience)) {
+    structuredData.experience = structuredData.experience.join('\n\n');
+  }
+  if (Array.isArray(structuredData.education)) {
+    structuredData.education = structuredData.education.join('\n\n');
+  }
+  if (Array.isArray(structuredData.skill)) {
+    structuredData.skill = structuredData.skill.join('、');
+  }
+  
+  return structuredData;
+}
+
+// 执行一键闪填
+function performQuickFill() {
+  // 检查是否有简历数据
+  if (!resumeSections || resumeSections.length === 0) {
+    showMessage('请先上传简历内容', true);
+    return;
+  }
+  
+  // 转换为结构化数据
+  const resumeData = convertResumeToStructuredData();
+  
+  if (Object.keys(resumeData).length === 0) {
+    showMessage('未找到可填充的简历数据', true);
+    return;
+  }
+  
+  // 查找当前活动标签页
+  chrome.tabs.query({ active: true }, (tabs) => {
+    if (tabs.length === 0) {
+      showMessage('未找到活动标签页', true);
+      return;
+    }
+    
+    // 找到第一个非扩展页面的标签页
+    let targetTab = null;
+    for (const tab of tabs) {
+      if (tab.url && 
+          !tab.url.startsWith('chrome://') && 
+          !tab.url.startsWith('chrome-extension://') &&
+          !tab.url.startsWith('edge://') &&
+          !tab.url.startsWith('about:')) {
+        targetTab = tab;
+        break;
+      }
+    }
+    
+    if (!targetTab) {
+      showMessage('当前页面不支持填写表单', true);
+      return;
+    }
+    
+    // 显示加载提示
+    showMessage('正在识别并填写表单...');
+    
+    // 发送一键闪填消息
+    chrome.tabs.sendMessage(targetTab.id, {
+      action: 'quickFill',
+      resumeData: resumeData
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        showMessage('一键闪填失败：请刷新页面后重试', true);
+        console.error('一键闪填错误:', chrome.runtime.lastError);
+      } else if (response && response.success) {
+        showMessage(response.message || `成功填写 ${response.filledCount || 0} 个字段`);
+      } else {
+        showMessage(response?.message || '一键闪填失败，请检查表单字段', true);
+      }
+    });
+  });
 }
 
