@@ -2,12 +2,6 @@
 
 一个简洁易用的 Chrome 扩展，用于快速读取 Markdown 简历内容并管理投递记录。可在填写过程中实时更新填写内容，支持投递记录，助力网申填写！
 
-## 安装教程
-- 下载到本地`git clone https://github.com/Catchy7896/resume-helper.git`后解压文件夹
-- 打开 Chrome 扩展管理页面：chrome://extensions/
-- 打开开发者模式
-- 把解压后的文件夹拖入插件
-- 
 ## 功能特点
 
 ### 核心功能
