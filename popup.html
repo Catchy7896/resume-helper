@@ -11,6 +11,9 @@
   <div class="container">
     <div class="header">
       <h1>📄 简历填写助手</h1>
+      <div class="header-actions">
+        <button id="floatWindowBtn" class="pin-btn" title="悬浮窗">📌</button>
+      </div>
     </div>
 
     <div class="tabs">
@@ -30,7 +33,16 @@
       </div>
 
       <div class="tags-section" id="tagsSection" style="display:none;">
-        <h2>点击标签复制内容</h2>
+        <div class="section-header-actions">
+          <h2>简历内容</h2>
+          <div class="section-toolbar">
+            <button id="addSectionBtn" class="toolbar-btn" title="添加模块">+ 模块</button>
+            <button id="exportMarkdownBtn" class="toolbar-btn" title="导出Markdown">📥 导出</button>
+          </div>
+          <div class="action-hint">
+            <span class="hint-text">💡 点击字段名复制到剪贴板，或点击"填写"按钮直接填入当前页面的表单</span>
+          </div>
+        </div>
         <div id="tagsContainer" class="tags-container"></div>
       </div>
     </div>
@@ -66,6 +78,44 @@
       <div class="dialog-actions">
         <button id="appDialogCancel" class="dialog-btn cancel">取消</button>
         <button id="appDialogConfirm" class="dialog-btn confirm">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 简历编辑对话框 -->
+  <div id="resumeEditDialog" class="dialog" style="display:none;">
+    <div class="dialog-content">
+      <h3 id="resumeEditDialogTitle">编辑简历内容</h3>
+      <div class="dialog-form-group">
+        <label>标签/字段名：</label>
+        <input type="text" id="resumeLabelInput" placeholder="例如：姓名、工作经历" class="dialog-input">
+      </div>
+      <div class="dialog-form-group">
+        <label>内容：</label>
+        <textarea id="resumeValueInput" placeholder="输入内容，支持多行" class="dialog-textarea"></textarea>
+      </div>
+      <div class="dialog-actions">
+        <button id="resumeEditDialogCancel" class="dialog-btn cancel">取消</button>
+        <button id="resumeEditDialogConfirm" class="dialog-btn confirm">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加模块对话框 -->
+  <div id="addSectionDialog" class="dialog" style="display:none;">
+    <div class="dialog-content">
+      <h3>添加新模块</h3>
+      <div class="dialog-form-group">
+        <label>模块名称：</label>
+        <input type="text" id="sectionNameInput" placeholder="例如：基本信息、工作经历" class="dialog-input">
+      </div>
+      <div class="dialog-form-group">
+        <label>子项名称（可选）：</label>
+        <input type="text" id="groupTitleInput" placeholder="例如：XX公司、XX项目" class="dialog-input">
+      </div>
+      <div class="dialog-actions">
+        <button id="addSectionDialogCancel" class="dialog-btn cancel">取消</button>
+        <button id="addSectionDialogConfirm" class="dialog-btn confirm">确定</button>
       </div>
     </div>
   </div>

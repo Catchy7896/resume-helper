@@ -15,6 +15,24 @@ body {
   position: relative;
   overflow: hidden;
   resize: both;
+  margin: 0;
+  padding: 0;
+}
+
+/* 固定窗口模式下的样式调整（标签页模式） */
+html[data-fixed="true"] body,
+body[data-fixed="true"] {
+  width: 100%;
+  max-width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  resize: none;
+}
+
+html[data-fixed="true"] .container,
+body[data-fixed="true"] .container {
+  height: 100%;
+  overflow-y: auto;
 }
 
 .resize-handle {
@@ -36,9 +54,56 @@ body {
 
 .header {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  position: relative;
+}
+
+.header-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.pin-btn {
+  background: transparent;
+  border: none;
+  font-size: 16px; /* 稍微缩小，更适合小窗 */
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  color: #555;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+  line-height: 1;
+  font-weight: 500;
+}
+
+/* 悬停：轻微背景色变化，不加阴影避免干扰小窗 */
+.pin-btn:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+  color: #222;
+}
+
+/* 激活状态 */
+.pin-btn:active {
+  background-color: rgba(0, 0, 0, 0.08);
+  color: #000;
+}
+
+/* 聚焦时（键盘导航）提供可见反馈 */
+.pin-btn:focus-visible {
+  background-color: rgba(0, 123, 255, 0.1);
+  border-radius: 4px;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.3);
+}
+
+.pin-btn:hover {
+  background: #f0f0f0;
 }
 
 h1 {
@@ -129,33 +194,229 @@ h1 {
   margin-top: 18px;
 }
 
-.tags-container {
+.section-header-actions {
+  margin-bottom: 12px;
+}
+
+.section-header-actions h2 {
+  margin-bottom: 8px;
+}
+
+.section-toolbar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
-.tag {
-  padding: 8px 16px;
-  background: #fff;
-  border: 2px solid #2196F3;
-  border-radius: 20px;
-  font-size: 13px;
-  color: #2196F3;
-  cursor: pointer;
-  transition: all 0.2s;
-  user-select: none;
-}
-
-.tag:hover {
+.toolbar-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
   background: #2196F3;
   color: #fff;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(33, 150, 243, 0.2);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.tag:active {
-  transform: translateY(0);
+.toolbar-btn:hover {
+  background: #0b7dda;
+}
+
+.action-hint {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #e3f2fd;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.hint-text {
+  color: #1976d2;
+}
+
+.tags-container {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.section-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.section-header {
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.section-title-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section-header h3 {
+  font-size: 16px;
+  color: #333;
+  margin: 0;
+}
+
+.section-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.group-title-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.section-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.section-group:first-of-type {
+  margin-top: 0;
+}
+
+.group-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e88e5;
+  margin-bottom: 4px;
+}
+
+.section-item {
+  display: block;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.item-container {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.section-item:hover {
+  border-color: #2196F3;
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.15);
+}
+
+.section-item.text-only .item-label {
+  display: none;
+}
+
+.item-label, .item-value {
+  display: none;
+}
+
+.copy-btn {
+  margin-left: auto;
+  background: #2196F3;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.copy-btn:hover {
+  background: #0b7dda;
+}
+
+.copy-btn.full {
+  flex: 1;
+  text-align: left;
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  min-width: 0;
+}
+
+.copy-btn.full:hover {
+  background: #f8fafc;
+  border-color: #2196F3;
+}
+
+.fill-btn {
+  background: #4CAF50;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.fill-btn:hover {
+  background: #43a047;
+}
+
+.action-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.action-btn:hover {
+  background: #f0f0f0;
+}
+
+.edit-btn {
+  color: #2196F3;
+}
+
+.delete-btn,
+.delete-btn-small {
+  color: #f44336;
+}
+
+.add-btn-small {
+  color: #4CAF50;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.section-item.empty {
+  justify-content: center;
+  color: #9aa0a6;
+  background: #f5f7fa;
+  cursor: default;
+}
+
+.empty-hint {
+  padding: 20px;
+  text-align: center;
+  color: #9aa0a6;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px dashed #d0d5dd;
 }
 
 .applications-header {
@@ -325,6 +586,18 @@ h1 {
   margin-bottom: 14px;
 }
 
+.dialog-form-group {
+  margin-bottom: 12px;
+}
+
+.dialog-form-group label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+}
+
 .dialog-input,
 .dialog-textarea,
 select.dialog-input {
@@ -333,8 +606,9 @@ select.dialog-input {
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
-  margin-bottom: 10px;
+  margin-bottom: 0;
   font-family: inherit;
+  box-sizing: border-box;
 }
 
 .dialog-textarea {
