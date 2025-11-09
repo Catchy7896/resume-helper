@@ -223,6 +223,17 @@ h1 {
   background: #0b7dda;
 }
 
+.quick-fill-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.quick-fill-btn:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #653a8f 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
 .action-hint {
   margin-top: 8px;
   padding: 8px 12px;

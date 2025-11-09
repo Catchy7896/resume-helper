@@ -19,6 +19,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ success: result.success, message: result.message });
     return true;
   }
+  
+  if (request.action === 'quickFill') {
+    quickFillForm(request.resumeData).then(result => {
+      sendResponse(result);
+    }).catch(error => {
+      sendResponse({ success: false, message: error.message });
+    });
+    return true; // Keep the message channel open for async response
+  }
 });
 
 // Check if an element is editable
@@ -336,5 +345,174 @@ function detectFormFields() {
   });
   
   return fields;
+}
+
+// 识别字段类型（通过 name、id、placeholder、autocomplete 等属性）
+function identifyFieldType(element) {
+  const name = (element.name || '').toLowerCase();
+  const id = (element.id || '').toLowerCase();
+  const placeholder = (element.placeholder || '').toLowerCase();
+  const autocomplete = (element.autocomplete || element.getAttribute('autocomplete') || '').toLowerCase();
+  const label = getLabelText(element).toLowerCase();
+  const type = (element.type || '').toLowerCase();
+  
+  // 组合所有文本用于匹配
+  const searchText = `${name} ${id} ${placeholder} ${autocomplete} ${label}`;
+  
+  // 字段类型映射规则
+  const fieldMappings = {
+    // 姓名相关
+    name: {
+      keywords: ['name', '姓名', '真实姓名', 'fullname', 'full-name', 'user-name', 'username', '姓', '名'],
+      autocomplete: ['name', 'given-name', 'family-name']
+    },
+    // 电话相关
+    phone: {
+      keywords: ['phone', 'tel', 'mobile', '电话', '手机', '联系电话', '手机号', '手机号码', 'telephone'],
+      autocomplete: ['tel', 'tel-national', 'tel-country-code']
+    },
+    // 邮箱相关
+    email: {
+      keywords: ['email', 'e-mail', 'mail', '邮箱', '邮件', '电子邮箱', 'email-address'],
+      autocomplete: ['email']
+    },
+    // 地址相关
+    address: {
+      keywords: ['address', '地址', '住址', '居住地址', '详细地址', 'street', 'street-address'],
+      autocomplete: ['street-address', 'address-line1', 'address-line2']
+    },
+    // 公司相关
+    company: {
+      keywords: ['company', '公司', '单位', '工作单位', 'employer', 'organization', 'org'],
+      autocomplete: ['organization']
+    },
+    // 职位相关
+    position: {
+      keywords: ['position', 'job', 'title', '职位', '岗位', '职务', 'job-title', 'jobtitle'],
+      autocomplete: ['organization-title']
+    },
+    // 工作经历
+    experience: {
+      keywords: ['experience', '工作经历', '工作经验', 'work-experience', 'workexperience', '工作履历'],
+      autocomplete: []
+    },
+    // 教育经历
+    education: {
+      keywords: ['education', '教育', '学历', '毕业院校', '学校', 'school', 'university', 'college'],
+      autocomplete: []
+    },
+    // 技能
+    skill: {
+      keywords: ['skill', '技能', '专业技能', '能力', 'skills', 'abilities'],
+      autocomplete: []
+    },
+    // 自我介绍
+    introduction: {
+      keywords: ['introduction', '介绍', '简介', '自我介绍', '个人简介', '描述', 'description', 'about', 'bio', 'biography'],
+      autocomplete: []
+    }
+  };
+  
+  // 首先检查 autocomplete 属性（最准确）
+  if (autocomplete) {
+    for (const [fieldType, mapping] of Object.entries(fieldMappings)) {
+      if (mapping.autocomplete.some(ac => autocomplete.includes(ac))) {
+        return fieldType;
+      }
+    }
+  }
+  
+  // 检查 type 属性
+  if (type === 'email') return 'email';
+  if (type === 'tel') return 'phone';
+  
+  // 检查关键词匹配
+  for (const [fieldType, mapping] of Object.entries(fieldMappings)) {
+    if (mapping.keywords.some(keyword => searchText.includes(keyword))) {
+      return fieldType;
+    }
+  }
+  
+  return null; // 无法识别
+}
+
+// 一键闪填表单
+async function quickFillForm(resumeData) {
+  try {
+    const filledFields = [];
+    const failedFields = [];
+    
+    // 获取所有可编辑的表单元素
+    const allInputs = document.querySelectorAll('input, textarea, [contenteditable="true"]');
+    const processedElements = new Set(); // 避免重复处理
+    
+    for (const input of allInputs) {
+      if (!isEditable(input) || !isVisible(input) || processedElements.has(input)) {
+        continue;
+      }
+      
+      // 识别字段类型
+      const fieldType = identifyFieldType(input);
+      if (!fieldType) {
+        continue; // 无法识别的字段跳过
+      }
+      
+      // 获取对应的简历数据
+      let value = null;
+      if (resumeData[fieldType]) {
+        value = resumeData[fieldType];
+      } else if (fieldType === 'name' && resumeData['姓名']) {
+        value = resumeData['姓名'];
+      } else if (fieldType === 'phone' && resumeData['电话']) {
+        value = resumeData['电话'];
+      } else if (fieldType === 'email' && resumeData['邮箱']) {
+        value = resumeData['邮箱'];
+      }
+      
+      if (value && typeof value === 'string' && value.trim()) {
+        // 检查字段是否已有值（可选：跳过已有值的字段）
+        const currentValue = input.value || input.textContent || '';
+        if (currentValue.trim() && currentValue.trim() === value.trim()) {
+          continue; // 值已相同，跳过
+        }
+        
+        // 填充字段
+        try {
+          fillElement(input, value);
+          triggerInputEvents(input);
+          filledFields.push({ fieldType, value: value.substring(0, 30) });
+          processedElements.add(input);
+        } catch (error) {
+          console.error(`填充字段 ${fieldType} 失败:`, error);
+          failedFields.push({ fieldType, error: error.message });
+        }
+      }
+    }
+    
+    if (filledFields.length === 0 && failedFields.length === 0) {
+      return {
+        success: false,
+        message: '未找到可识别的表单字段，请检查页面是否包含表单',
+        filledCount: 0
+      };
+    }
+    
+    return {
+      success: true,
+      message: `成功填写 ${filledFields.length} 个字段${failedFields.length > 0 ? `，${failedFields.length} 个字段失败` : ''}`,
+      filledCount: filledFields.length,
+      failedCount: failedFields.length,
+      filledFields,
+      failedFields
+    };
+    
+  } catch (error) {
+    console.error('一键闪填失败:', error);
+    return {
+      success: false,
+      message: '一键闪填失败: ' + error.message,
+      filledCount: 0
+    };
+  }
 }
 
