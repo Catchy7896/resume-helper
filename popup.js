@@ -6,6 +6,7 @@ const uploadSection = document.getElementById('uploadSection');
 const reuploadSection = document.getElementById('reuploadSection');
 const tagsSection = document.getElementById('tagsSection');
 const tagsContainer = document.getElementById('tagsContainer');
+const resumeNav = document.getElementById('resumeNav');
 const fileStatus = document.getElementById('fileStatus');
 const message = document.getElementById('message');
 const pinWindowBtn = document.getElementById('pinWindowBtn');
@@ -33,7 +34,10 @@ const tabContents = document.querySelectorAll('.tab-content');
 
 const addApplicationBtn = document.getElementById('addApplicationBtn');
 const applicationsContainer = document.getElementById('applicationsContainer');
+const applicationsOverview = document.getElementById('applicationsOverview');
+const applicationsTotal = document.getElementById('applicationsTotal');
 const appTabBtns = document.querySelectorAll('.app-tab-btn');
+const applicationsChart = document.getElementById('applicationsChart');
 const applicationDialog = document.getElementById('applicationDialog');
 const applicationDialogTitle = document.getElementById('applicationDialogTitle');
 const appTitleInput = document.getElementById('appTitleInput');
@@ -48,6 +52,7 @@ const appDialogConfirm = document.getElementById('appDialogConfirm');
 let resumeSections = [];
 let applications = { pending: [], submitted: [] };
 let currentApplicationStatus = 'pending';
+let currentApplicationsTab = 'overview';
 let editingApplicationId = null;
 let isFixedWindow = false;
 let isFloatWindow = false;
@@ -56,6 +61,8 @@ let selectedText = ''; // 当前选中的文本
 // 编辑状态
 let editingResumeEntry = null; // { sectionIndex, groupIndex, entryIndex } 或 { sectionIndex, groupIndex: -1 } 表示添加新条目
 let editingSection = null; // { sectionIndex } 表示编辑模块
+
+const WEEKDAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
@@ -172,7 +179,9 @@ function initApplications() {
 
   appTabBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
-      switchApplicationTab(btn.dataset.status);
+      const tab = btn.dataset.tab || btn.dataset.status;
+      if (!tab) return;
+      switchApplicationTab(tab);
     });
   });
 
@@ -214,7 +223,7 @@ function loadStoredData() {
       };
     }
 
-    switchApplicationTab(currentApplicationStatus);
+    switchApplicationTab(currentApplicationsTab);
 
     if (result.windowSize) {
       const { width, height } = result.windowSize;
@@ -425,15 +434,25 @@ function convertFlatDataToSections(rawData) {
 // 渲染分块内容
 function displaySections(sections) {
   tagsContainer.innerHTML = '';
+  if (resumeNav) {
+    resumeNav.innerHTML = '';
+  }
 
   if (!sections.length) {
     tagsContainer.innerHTML = '<p class="empty-hint">暂无内容</p>';
+    if (resumeNav) {
+      resumeNav.style.display = 'none';
+    }
     return;
   }
+
+  const navFragment = resumeNav ? document.createDocumentFragment() : null;
 
   sections.forEach((section, sectionIndex) => {
     const sectionCard = document.createElement('div');
     sectionCard.className = 'section-card';
+    const sectionId = createSectionId(section.name, sectionIndex);
+    sectionCard.id = sectionId;
 
     const header = document.createElement('div');
     header.className = 'section-header';
@@ -577,7 +596,36 @@ function displaySections(sections) {
     });
 
     tagsContainer.appendChild(sectionCard);
+
+    if (navFragment && resumeNav) {
+      const navBtn = document.createElement('button');
+      navBtn.type = 'button';
+      navBtn.className = 'resume-nav-btn';
+      navBtn.textContent = section.name || `模块 ${sectionIndex + 1}`;
+      navBtn.addEventListener('click', () => {
+        const target = document.getElementById(sectionId);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+      navFragment.appendChild(navBtn);
+    }
   });
+
+  if (resumeNav && navFragment) {
+    resumeNav.appendChild(navFragment);
+    resumeNav.style.display = 'flex';
+  }
+}
+
+function createSectionId(name, index) {
+  const base = (name || `section-${index + 1}`).toString().trim().toLowerCase();
+  const sanitized = base
+    .replace(/[\s_]+/g, '-')
+    .replace(/[^\w\u4e00-\u9fa5-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  return `resume-section-${index}-${sanitized || 'default'}`;
 }
 
 // 初始化固定窗口功能
@@ -764,20 +812,39 @@ function showMessage(msg, isError = false) {
 }
 
 // 投递记录逻辑
-function switchApplicationTab(status) {
-  currentApplicationStatus = status;
+function switchApplicationTab(tab) {
+  currentApplicationsTab = tab;
   appTabBtns.forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.status === status);
+    const btnTab = btn.dataset.tab || btn.dataset.status;
+    btn.classList.toggle('active', btnTab === tab);
   });
-  displayApplications();
+
+  if (applicationsOverview) {
+    applicationsOverview.style.display = tab === 'overview' ? 'block' : 'none';
+  }
+
+  if (applicationsContainer) {
+    applicationsContainer.style.display = tab === 'overview' ? 'none' : 'block';
+  }
+
+  if (tab === 'overview') {
+    renderApplicationsOverview();
+  } else {
+    currentApplicationStatus = tab;
+    displayApplications(tab);
+  }
 }
 
-function displayApplications() {
+function displayApplications(status = currentApplicationStatus) {
+  if (!applicationsContainer) return;
+
+  currentApplicationStatus = status;
   applicationsContainer.innerHTML = '';
-  const list = applications[currentApplicationStatus] || [];
+  const list = applications[status] || [];
 
   if (list.length === 0) {
     applicationsContainer.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">暂无记录，点击 + 添加记录</p>';
+    renderApplicationsOverview();
     return;
   }
 
@@ -851,6 +918,135 @@ function displayApplications() {
 
     applicationsContainer.appendChild(item);
   });
+
+  renderApplicationsOverview();
+}
+
+function renderApplicationsOverview() {
+  updateApplicationsSummary();
+  renderApplicationsChart();
+}
+
+function updateApplicationsSummary() {
+  if (!applicationsTotal) return;
+
+  const pendingCount = Array.isArray(applications.pending) ? applications.pending.length : 0;
+  const submittedCount = Array.isArray(applications.submitted) ? applications.submitted.length : 0;
+  const totalCount = pendingCount + submittedCount;
+
+  applicationsTotal.textContent = `总计 ${totalCount} 条 | 待投递 ${pendingCount} | 已投递 ${submittedCount}`;
+}
+
+function renderApplicationsChart() {
+  if (!applicationsChart) return;
+
+  const submittedList = Array.isArray(applications.submitted) ? applications.submitted : [];
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+
+  const days = [];
+  for (let offset = 6; offset >= 0; offset--) {
+    const day = new Date(today);
+    day.setDate(today.getDate() - offset);
+    day.setHours(12, 0, 0, 0);
+    days.push(day);
+  }
+
+  const counts = days.map((day) => {
+    const key = formatDateKey(day);
+    return submittedList.filter((app) => (app.date || '').startsWith(key)).length;
+  });
+
+  const total = counts.reduce((sum, value) => sum + value, 0);
+  const maxCount = Math.max(...counts, 1);
+
+  applicationsChart.innerHTML = '';
+
+  const title = document.createElement('div');
+  title.className = 'chart-title';
+  title.textContent = '最近7天已投递数量';
+  applicationsChart.appendChild(title);
+
+  const meta = document.createElement('div');
+  meta.className = 'chart-meta';
+
+  const rangeLabel = document.createElement('div');
+  rangeLabel.className = 'chart-range';
+  rangeLabel.textContent = `${formatMonthDay(days[0])} - ${formatMonthDay(days[days.length - 1])}`;
+  meta.appendChild(rangeLabel);
+
+  const legend = document.createElement('div');
+  legend.className = 'chart-legend';
+  const legendDot = document.createElement('span');
+  legendDot.className = 'chart-legend-dot';
+  const legendLabel = document.createElement('span');
+  legendLabel.className = 'chart-legend-label';
+  legendLabel.textContent = '已投递';
+  legend.appendChild(legendDot);
+  legend.appendChild(legendLabel);
+  meta.appendChild(legend);
+
+  applicationsChart.appendChild(meta);
+
+  if (total === 0) {
+    const emptyEl = document.createElement('div');
+    emptyEl.className = 'chart-empty';
+    emptyEl.textContent = '暂无已投递数据';
+    applicationsChart.appendChild(emptyEl);
+    return;
+  }
+
+  const barsWrapper = document.createElement('div');
+  barsWrapper.className = 'chart-bars';
+
+  days.forEach((day, index) => {
+    const count = counts[index];
+    const column = document.createElement('div');
+    column.className = 'chart-bar';
+
+    const valueLabel = document.createElement('div');
+    valueLabel.className = 'chart-bar-value';
+    valueLabel.textContent = count ? String(count) : '';
+    column.appendChild(valueLabel);
+
+    const barFill = document.createElement('div');
+    barFill.className = 'chart-bar-fill';
+    const heightPercent = count ? Math.max((count / maxCount) * 100, 12) : 4;
+    barFill.style.height = `${heightPercent}%`;
+    barFill.title = `${formatMonthDay(day)} ${formatWeekdayLabel(day)}：${count} 次`;
+    column.appendChild(barFill);
+
+    const label = document.createElement('div');
+    label.className = 'chart-bar-label';
+    label.textContent = formatWeekdayLabel(day);
+    column.appendChild(label);
+
+    const metaLabel = document.createElement('div');
+    metaLabel.className = 'chart-bar-meta';
+    metaLabel.textContent = formatMonthDay(day);
+    column.appendChild(metaLabel);
+
+    barsWrapper.appendChild(column);
+  });
+
+  applicationsChart.appendChild(barsWrapper);
+}
+
+function formatDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatWeekdayLabel(date) {
+  return WEEKDAY_LABELS[date.getDay()];
+}
+
+function formatMonthDay(date) {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${month}/${day}`;
 }
 
 function openApplicationDialog(mode, id = null) {

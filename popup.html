@@ -43,6 +43,7 @@
             <span class="hint-text">💡 点击字段名复制到剪贴板，或点击"填写"按钮直接填入当前页面的表单</span>
           </div>
         </div>
+        <div id="resumeNav" class="resume-nav" style="display:none;"></div>
         <div id="tagsContainer" class="tags-container"></div>
       </div>
     </div>
@@ -54,11 +55,19 @@
       </div>
 
       <div class="applications-tabs">
-        <button class="app-tab-btn active" data-status="pending">待投递</button>
-        <button class="app-tab-btn" data-status="submitted">已投递</button>
+        <button class="app-tab-btn" data-tab="pending">待投递</button>
+        <button class="app-tab-btn" data-tab="submitted">已投递</button>
+        <button class="app-tab-btn active" data-tab="overview">投递情况</button>
       </div>
 
-      <div id="applicationsContainer" class="applications-container"></div>
+      <div id="applicationsOverview" class="applications-overview">
+        <div class="applications-summary">
+          <span id="applicationsTotal" class="applications-total"></span>
+        </div>
+        <div class="applications-chart" id="applicationsChart"></div>
+      </div>
+
+      <div id="applicationsContainer" class="applications-container" style="display:none;"></div>
     </div>
 
     <div id="message" class="message"></div>
